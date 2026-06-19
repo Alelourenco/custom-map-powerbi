@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+.tmp/
+webpack.statistics.prod.html
+
+# IDE
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Test
+test-data/
+
+# Logs
+*.log

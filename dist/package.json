@@ -1,0 +1,17 @@
+{
+		"version": "1.0.0.0",
+		"author": {"name":"Developer","email":"dev@example.com"},
+		"resources": [
+			{
+				"resourceId": "rId0",
+				"sourceType": 5,
+				"file": "resources/brazilMapVisual5B5DD37DD18C45B1B3C7DD73C184549D.pbiviz.json"
+			}
+		],
+		"visual": {"name":"brazilMapVisual","displayName":"Mapa do Brasil - Custom BI","guid":"brazilMapVisual5B5DD37DD18C45B1B3C7DD73C184549D","visualClassName":"Visual","version":"1.0.0.0","description":"Mapa coroplético do Brasil com formatação condicional via degradê, responsivo e personalizável.","supportUrl":"https://github.com","gitHubUrl":"https://github.com"},
+		"metadata": {
+			"pbivizjson": {
+				"resourceId": "rId0"
+			}
+		}
+	}

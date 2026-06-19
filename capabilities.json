@@ -1,0 +1,284 @@
+{
+  "dataRoles": [
+    {
+      "displayName": "Estado",
+      "name": "state",
+      "kind": "Grouping",
+      "description": "UF ou nome do estado"
+    },
+    {
+      "displayName": "Categoria",
+      "name": "category",
+      "kind": "Grouping",
+      "description": "Categoria opcional para tooltip e agregação"
+    },
+    {
+      "displayName": "Valor principal",
+      "name": "measure",
+      "kind": "Measure",
+      "description": "Métrica usada para cor e ranking"
+    },
+    {
+      "displayName": "Valor secundário",
+      "name": "secondaryMeasure",
+      "kind": "Measure",
+      "description": "Métrica opcional para tooltip e tabela"
+    },
+    {
+      "displayName": "Medida de tooltip",
+      "name": "tooltipMeasure",
+      "kind": "Measure",
+      "description": "Métrica opcional adicional para tooltip"
+    }
+  ],
+  "dataViewMappings": [
+    {
+      "conditions": [
+        {
+          "state": { "max": 1 },
+          "category": { "max": 1 },
+          "measure": { "max": 1 },
+          "secondaryMeasure": { "max": 1 },
+          "tooltipMeasure": { "max": 1 }
+        }
+      ],
+      "categorical": {
+        "categories": {
+          "select": [
+            { "for": { "in": "state" } },
+            { "for": { "in": "category" } }
+          ],
+          "dataReductionAlgorithm": { "top": { "count": 300 } }
+        },
+        "values": {
+          "select": [
+            { "bind": { "to": "measure" } },
+            { "bind": { "to": "secondaryMeasure" } },
+            { "bind": { "to": "tooltipMeasure" } }
+          ]
+        }
+      }
+    }
+  ],
+  "objects": {
+    "mapSettings": {
+      "properties": {
+        "borderColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "borderWidth": {
+          "type": { "numeric": true }
+        },
+        "hoverColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "showMissingStates": {
+          "type": { "bool": true }
+        },
+        "noDataOpacity": {
+          "type": { "numeric": true }
+        },
+        "mapPadding": {
+          "type": { "numeric": true }
+        },
+        "labelMode": {
+          "type": { "enumeration": [
+            { "value": "uf", "displayName": "UF" },
+            { "value": "name", "displayName": "Nome do estado" },
+            { "value": "value", "displayName": "Valor" },
+            { "value": "uf_value", "displayName": "UF + Valor" },
+            { "value": "name_value", "displayName": "Nome + Valor" },
+            { "value": "none", "displayName": "Ocultar" }
+          ]}
+        },
+        "showLabels": {
+          "type": { "bool": true }
+        },
+        "labelFontFamily": {
+          "type": { "formatting": { "fontFamily": true } }
+        },
+        "labelFontSize": {
+          "type": { "formatting": { "fontSize": true } }
+        },
+        "labelBold": {
+          "type": { "bool": true }
+        },
+        "labelItalic": {
+          "type": { "bool": true }
+        },
+        "labelUnderline": {
+          "type": { "bool": true }
+        },
+        "labelColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "labelStroke": {
+          "type": { "bool": true }
+        }
+      }
+    },
+    "dataColors": {
+      "properties": {
+        "fill": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "nullColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "canvasColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "reverseScale": {
+          "type": { "bool": true }
+        }
+      }
+    },
+    "legend": {
+      "properties": {
+        "show": {
+          "type": { "bool": true }
+        },
+        "position": {
+          "type": { "enumeration": [
+            { "value": "right", "displayName": "Direita" },
+            { "value": "left", "displayName": "Esquerda" },
+            { "value": "top", "displayName": "Topo (centro)" },
+            { "value": "bottom", "displayName": "Rodapé (centro)" }
+          ]}
+        },
+        "showBackground": {
+          "type": { "bool": true }
+        },
+        "backgroundColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "fontColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "showTitle": {
+          "type": { "bool": true }
+        },
+        "titleText": {
+          "type": { "text": true }
+        },
+        "fontFamily": {
+          "type": { "formatting": { "fontFamily": true } }
+        },
+        "fontSize": {
+          "type": { "formatting": { "fontSize": true } }
+        },
+        "fontBold": {
+          "type": { "bool": true }
+        },
+        "fontItalic": {
+          "type": { "bool": true }
+        }
+      }
+    },
+    "tooltip": {
+      "properties": {
+        "show": {
+          "type": { "bool": true }
+        },
+        "backgroundColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "textColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "fontFamily": {
+          "type": { "formatting": { "fontFamily": true } }
+        },
+        "fontSize": {
+          "type": { "formatting": { "fontSize": true } }
+        },
+        "fontBold": {
+          "type": { "bool": true }
+        },
+        "fontItalic": {
+          "type": { "bool": true }
+        },
+        "showValue": {
+          "type": { "bool": true }
+        },
+        "showPercentage": {
+          "type": { "bool": true }
+        },
+        "showCategory": {
+          "type": { "bool": true }
+        },
+        "showSecondaryValue": {
+          "type": { "bool": true }
+        },
+        "showTooltipMeasure": {
+          "type": { "bool": true }
+        }
+      }
+    },
+    "dataTable": {
+      "properties": {
+        "show": {
+          "type": { "bool": true }
+        },
+        "position": {
+          "type": { "enumeration": [
+            { "value": "left", "displayName": "Esquerda" },
+            { "value": "right", "displayName": "Direita" }
+          ]}
+        },
+        "topN": {
+          "type": { "numeric": true }
+        },
+        "showBars": {
+          "type": { "bool": true }
+        },
+        "barColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "fontFamily": {
+          "type": { "formatting": { "fontFamily": true } }
+        },
+        "fontSize": {
+          "type": { "formatting": { "fontSize": true } }
+        },
+        "fontBold": {
+          "type": { "bool": true }
+        },
+        "fontItalic": {
+          "type": { "bool": true }
+        },
+        "fontUnderline": {
+          "type": { "bool": true }
+        },
+        "fontColor": {
+          "type": { "fill": { "solid": { "color": true } } }
+        },
+        "showStateName": {
+          "type": { "bool": true }
+        },
+        "showValue": {
+          "type": { "bool": true }
+        },
+        "showPercentage": {
+          "type": { "bool": true }
+        },
+        "showSecondaryValue": {
+          "type": { "bool": true }
+        },
+        "sortBy": {
+          "type": { "enumeration": [
+            { "value": "primary", "displayName": "Valor principal" },
+            { "value": "secondary", "displayName": "Valor secundário" },
+            { "value": "name", "displayName": "Nome do estado" }
+          ]}
+        }
+      }
+    }
+  },
+  "supportsHighlight": true,
+  "supportsMultiVisualSelection": true,
+  "sorting": {
+    "default": {}
+  },
+  "privileges": []
+}
