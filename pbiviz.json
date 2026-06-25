@@ -1,10 +1,10 @@
 {
   "visual": {
-    "name": "brazilMapVisual",
-    "displayName": "Americas Map - Custom BI",
-    "guid": "brazilMapVisual5B5DD37DD18C45B1B3C7DD73C184549D",
+    "name": "aleMapsVisual",
+    "displayName": "Ale Maps - Americas",
+    "guid": "aleMapsVisual5B5DD37DD18C45B1B3C7DD73C184549D",
     "visualClassName": "Visual",
-    "version": "2.0.0.0",
+    "version": "2.1.0.0",
     "description": "Interactive choropleth map of the Americas for Power BI. Supports all countries in South, Central and North America with conditional formatting, cross-filtering and full localization.",
     "supportUrl": "https://github.com/Alelourenco/custom-map-powerbi",
     "gitHubUrl": "https://github.com/Alelourenco/custom-map-powerbi"
@@ -21,6 +21,6 @@
   "style": "style/visual.less",
   "capabilities": "capabilities.json",
   "dependencies": null,
-  "stringResources": [],
-  "version": "1.0.0.0"
+  "stringResources": ["stringResources/en-US/resources.resjson", "stringResources/pt-BR/resources.resjson", "stringResources/es-ES/resources.resjson"],
+  "version": "2.1.0.0"
 }

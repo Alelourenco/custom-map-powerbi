@@ -14,7 +14,7 @@ import VisualEnumerationInstanceKinds = powerbi.VisualEnumerationInstanceKinds;
 import ISelectionManager = powerbi.extensibility.ISelectionManager;
 import ISelectionId = powerbi.visuals.ISelectionId;
 
-import { VisualFormattingSettingsModel } from "./settings";
+import { VisualFormattingSettingsModel, setLocalizationManager } from "./settings";
 import { applyGradientColors, buildLegendGradientCSS, getGradientDomain, GradientConfig, StateDataPoint } from "./colorEngine";
 import { GeoFeature, GeoCollection, MapScope, Locale, resolveLocale, getGeoForScope, getFeatureCode, getFeatureName, buildAliasMap } from "./geoData";
 
@@ -30,12 +30,15 @@ function lightenHex(hex: string, ratio: number): string {
     return interpolateHex(hex, "#ffffff", ratio);
 }
 
-/** Localized UI strings */
-const L10N: Record<string, Record<Locale, string>> = {
-    noData: { pt: "Sem dados", en: "No data", es: "Sin datos" },
-    secondary: { pt: "Valor secundário", en: "Secondary value", es: "Valor secundario" },
-    additional: { pt: "Medida adicional", en: "Additional measure", es: "Medida adicional" },
-};
+/** Format number compactly like native PBI visuals: 1K, 1.2M, 3.5B etc. */
+function formatCompact(value: number, locale: string): string {
+    if (value == null || isNaN(value)) return "0";
+    const abs = Math.abs(value);
+    if (abs >= 1e9) return (value / 1e9).toLocaleString(locale, { maximumFractionDigits: 1 }) + "B";
+    if (abs >= 1e6) return (value / 1e6).toLocaleString(locale, { maximumFractionDigits: 1 }) + "M";
+    if (abs >= 1e3) return (value / 1e3).toLocaleString(locale, { maximumFractionDigits: 1 }) + "K";
+    return value.toLocaleString(locale, { maximumFractionDigits: 0 });
+}
 
 export class Visual implements IVisual {
     private events: IVisualEventService;
@@ -43,6 +46,7 @@ export class Visual implements IVisual {
     private formattingSettings: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
     private host: powerbi.extensibility.visual.IVisualHost;
+    private localizationManager: powerbi.extensibility.ILocalizationManager;
     private selectionManager: ISelectionManager;
 
     // DOM
@@ -75,6 +79,8 @@ export class Visual implements IVisual {
     constructor(options: VisualConstructorOptions) {
         this.events = options.host.eventService;
         this.host = options.host;
+        this.localizationManager = options.host.createLocalizationManager();
+        setLocalizationManager(this.localizationManager);
         this.selectionManager = options.host.createSelectionManager();
         this.selectionManager.registerOnSelectCallback(() => {
             // When external visuals change selection, re-render with updated opacity
@@ -179,6 +185,9 @@ export class Visual implements IVisual {
             this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(
                 VisualFormattingSettingsModel, dataView
             );
+
+            // Apply localization to format pane labels
+            this.formattingSettings.applyLocalization();
 
             // Update locale from Power BI
             this.locale = resolveLocale(this.host.locale);
@@ -524,7 +533,7 @@ export class Visual implements IVisual {
 
                 // Build label text based on mode
                 let labelText: string;
-                const val = dataPoint ? dataPoint.value.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US") : "";
+                const val = dataPoint ? formatCompact(dataPoint.value, this.host.locale) : "";
                 const featureName = getFeatureName(feature, this.isCountryLevel, this.locale);
                 switch (labelMode) {
                     case "name":
@@ -662,7 +671,7 @@ export class Visual implements IVisual {
                 if (s.showValue.value) {
                     const valSpan = document.createElement("span");
                     valSpan.className = "bm-dt-value";
-                    valSpan.textContent = displayValue.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
+                    valSpan.textContent = formatCompact(displayValue, this.host.locale);
                     values.appendChild(valSpan);
                 }
                 if (s.showPercentage.value) {
@@ -677,7 +686,7 @@ export class Visual implements IVisual {
             if (s.showSecondaryValue.value && item.secondaryValue != null && item.secondaryValue !== 0) {
                 const secondary = document.createElement("div");
                 secondary.className = "bm-dt-secondary";
-                secondary.textContent = `Sec.: ${item.secondaryValue.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US")}`;
+                secondary.textContent = `${this.localizationManager.getDisplayName("Visual_SecondaryValue")}: ${formatCompact(item.secondaryValue, this.host.locale)}`;
                 row.appendChild(secondary);
             }
 
@@ -747,7 +756,7 @@ export class Visual implements IVisual {
             // Horizontal layout: minLabel - bar - maxLabel
             const minLabel = document.createElement("span");
             minLabel.className = "bm-legend-tick";
-            minLabel.textContent = domain.min.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
+            minLabel.textContent = formatCompact(domain.min, this.host.locale);
             this.legendEl.appendChild(minLabel);
 
             const bar = document.createElement("div");
@@ -757,13 +766,13 @@ export class Visual implements IVisual {
 
             const maxLabel = document.createElement("span");
             maxLabel.className = "bm-legend-tick";
-            maxLabel.textContent = domain.max.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
+            maxLabel.textContent = formatCompact(domain.max, this.host.locale);
             this.legendEl.appendChild(maxLabel);
         } else {
             // Vertical layout: maxLabel - bar - minLabel (top to bottom)
             const maxLabel = document.createElement("span");
             maxLabel.className = "bm-legend-tick";
-            maxLabel.textContent = domain.max.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
+            maxLabel.textContent = formatCompact(domain.max, this.host.locale);
             this.legendEl.appendChild(maxLabel);
 
             const bar = document.createElement("div");
@@ -773,7 +782,7 @@ export class Visual implements IVisual {
 
             const minLabel = document.createElement("span");
             minLabel.className = "bm-legend-tick";
-            minLabel.textContent = domain.min.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
+            minLabel.textContent = formatCompact(domain.min, this.host.locale);
             this.legendEl.appendChild(minLabel);
         }
 
@@ -820,19 +829,19 @@ export class Visual implements IVisual {
             const valDiv = document.createElement("div");
             valDiv.className = "bm-tt-value";
             const displayVal = dp.highlightValue != null ? dp.highlightValue : dp.value;
-            valDiv.textContent = hasData ? displayVal.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US") : L10N.noData[this.locale];
+            valDiv.textContent = hasData ? formatCompact(displayVal, this.host.locale) : this.localizationManager.getDisplayName("Visual_NoData");
             this.tooltipEl.appendChild(valDiv);
         }
         if (s.showSecondaryValue.value && hasData && dp.secondaryValue != null && dp.secondaryValue !== 0) {
             const secDiv = document.createElement("div");
             secDiv.className = "bm-tt-meta";
-            secDiv.textContent = `${L10N.secondary[this.locale]}: ${dp.secondaryValue.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US")}`;
+            secDiv.textContent = `${this.localizationManager.getDisplayName("Visual_SecondaryValue")}: ${formatCompact(dp.secondaryValue, this.host.locale)}`;
             this.tooltipEl.appendChild(secDiv);
         }
         if (s.showTooltipMeasure.value && hasData && dp.tooltipValue != null && dp.tooltipValue !== 0) {
             const tooltipMeasureDiv = document.createElement("div");
             tooltipMeasureDiv.className = "bm-tt-meta";
-            tooltipMeasureDiv.textContent = `${L10N.additional[this.locale]}: ${dp.tooltipValue.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US")}`;
+            tooltipMeasureDiv.textContent = `${this.localizationManager.getDisplayName("Visual_AdditionalMeasure")}: ${formatCompact(dp.tooltipValue, this.host.locale)}`;
             this.tooltipEl.appendChild(tooltipMeasureDiv);
         }
         if (s.showPercentage.value && dp.percentage != null) {
