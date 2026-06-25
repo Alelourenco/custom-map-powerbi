@@ -30,14 +30,33 @@ function lightenHex(hex: string, ratio: number): string {
     return interpolateHex(hex, "#ffffff", ratio);
 }
 
-/** Format number compactly like native PBI visuals: 1K, 1.2M, 3.5B etc. */
-function formatCompact(value: number, locale: string): string {
+/** Format number with display units like native PBI visuals. */
+function formatCompact(value: number, locale: string, displayUnits: number = 0): string {
     if (value == null || isNaN(value)) return "0";
     const abs = Math.abs(value);
-    if (abs >= 1e9) return (value / 1e9).toLocaleString(locale, { maximumFractionDigits: 1 }) + "B";
-    if (abs >= 1e6) return (value / 1e6).toLocaleString(locale, { maximumFractionDigits: 1 }) + "M";
-    if (abs >= 1e3) return (value / 1e3).toLocaleString(locale, { maximumFractionDigits: 1 }) + "K";
-    return value.toLocaleString(locale, { maximumFractionDigits: 0 });
+
+    let divisor = 1;
+    let suffix = "";
+
+    if (displayUnits === 0) {
+        // Auto: pick based on magnitude
+        if (abs >= 1e12) { divisor = 1e12; suffix = "T"; }
+        else if (abs >= 1e9) { divisor = 1e9; suffix = "B"; }
+        else if (abs >= 1e6) { divisor = 1e6; suffix = "M"; }
+        else if (abs >= 1e3) { divisor = 1e3; suffix = "K"; }
+    } else if (displayUnits > 1) {
+        divisor = displayUnits;
+        if (displayUnits === 1000) suffix = "K";
+        else if (displayUnits === 1e6) suffix = "M";
+        else if (displayUnits === 1e9) suffix = "B";
+        else if (displayUnits === 1e12) suffix = "T";
+    }
+    // displayUnits === 1 means "None" — no scaling
+
+    const formatted = (value / divisor).toLocaleString(locale, {
+        maximumFractionDigits: divisor > 1 ? 1 : 0
+    });
+    return formatted + suffix;
 }
 
 export class Visual implements IVisual {
@@ -75,6 +94,7 @@ export class Visual implements IVisual {
     private currentFeatures: GeoFeature[] = [];
     private isCountryLevel: boolean = false;
     private locale: Locale = "pt";
+    private displayUnitsValue: number = 0;
 
     constructor(options: VisualConstructorOptions) {
         this.events = options.host.eventService;
@@ -188,6 +208,9 @@ export class Visual implements IVisual {
 
             // Apply localization to format pane labels
             this.formattingSettings.applyLocalization();
+
+            // Read display units setting
+            this.displayUnitsValue = Number(this.formattingSettings.mapSettingsCard.displayUnits.value) || 0;
 
             // Update locale from Power BI
             this.locale = resolveLocale(this.host.locale);
@@ -533,7 +556,7 @@ export class Visual implements IVisual {
 
                 // Build label text based on mode
                 let labelText: string;
-                const val = dataPoint ? formatCompact(dataPoint.value, this.host.locale) : "";
+                const val = dataPoint ? formatCompact(dataPoint.value, this.host.locale, this.displayUnitsValue) : "";
                 const featureName = getFeatureName(feature, this.isCountryLevel, this.locale);
                 switch (labelMode) {
                     case "name":
@@ -671,7 +694,7 @@ export class Visual implements IVisual {
                 if (s.showValue.value) {
                     const valSpan = document.createElement("span");
                     valSpan.className = "bm-dt-value";
-                    valSpan.textContent = formatCompact(displayValue, this.host.locale);
+                    valSpan.textContent = formatCompact(displayValue, this.host.locale, this.displayUnitsValue);
                     values.appendChild(valSpan);
                 }
                 if (s.showPercentage.value) {
@@ -686,7 +709,7 @@ export class Visual implements IVisual {
             if (s.showSecondaryValue.value && item.secondaryValue != null && item.secondaryValue !== 0) {
                 const secondary = document.createElement("div");
                 secondary.className = "bm-dt-secondary";
-                secondary.textContent = `${this.localizationManager.getDisplayName("Visual_SecondaryValue")}: ${formatCompact(item.secondaryValue, this.host.locale)}`;
+                secondary.textContent = `${this.localizationManager.getDisplayName("Visual_SecondaryValue")}: ${formatCompact(item.secondaryValue, this.host.locale, this.displayUnitsValue)}`;
                 row.appendChild(secondary);
             }
 
@@ -756,7 +779,7 @@ export class Visual implements IVisual {
             // Horizontal layout: minLabel - bar - maxLabel
             const minLabel = document.createElement("span");
             minLabel.className = "bm-legend-tick";
-            minLabel.textContent = formatCompact(domain.min, this.host.locale);
+            minLabel.textContent = formatCompact(domain.min, this.host.locale, this.displayUnitsValue);
             this.legendEl.appendChild(minLabel);
 
             const bar = document.createElement("div");
@@ -766,13 +789,13 @@ export class Visual implements IVisual {
 
             const maxLabel = document.createElement("span");
             maxLabel.className = "bm-legend-tick";
-            maxLabel.textContent = formatCompact(domain.max, this.host.locale);
+            maxLabel.textContent = formatCompact(domain.max, this.host.locale, this.displayUnitsValue);
             this.legendEl.appendChild(maxLabel);
         } else {
             // Vertical layout: maxLabel - bar - minLabel (top to bottom)
             const maxLabel = document.createElement("span");
             maxLabel.className = "bm-legend-tick";
-            maxLabel.textContent = formatCompact(domain.max, this.host.locale);
+            maxLabel.textContent = formatCompact(domain.max, this.host.locale, this.displayUnitsValue);
             this.legendEl.appendChild(maxLabel);
 
             const bar = document.createElement("div");
@@ -782,7 +805,7 @@ export class Visual implements IVisual {
 
             const minLabel = document.createElement("span");
             minLabel.className = "bm-legend-tick";
-            minLabel.textContent = formatCompact(domain.min, this.host.locale);
+            minLabel.textContent = formatCompact(domain.min, this.host.locale, this.displayUnitsValue);
             this.legendEl.appendChild(minLabel);
         }
 
@@ -829,19 +852,19 @@ export class Visual implements IVisual {
             const valDiv = document.createElement("div");
             valDiv.className = "bm-tt-value";
             const displayVal = dp.highlightValue != null ? dp.highlightValue : dp.value;
-            valDiv.textContent = hasData ? formatCompact(displayVal, this.host.locale) : this.localizationManager.getDisplayName("Visual_NoData");
+            valDiv.textContent = hasData ? formatCompact(displayVal, this.host.locale, this.displayUnitsValue) : this.localizationManager.getDisplayName("Visual_NoData");
             this.tooltipEl.appendChild(valDiv);
         }
         if (s.showSecondaryValue.value && hasData && dp.secondaryValue != null && dp.secondaryValue !== 0) {
             const secDiv = document.createElement("div");
             secDiv.className = "bm-tt-meta";
-            secDiv.textContent = `${this.localizationManager.getDisplayName("Visual_SecondaryValue")}: ${formatCompact(dp.secondaryValue, this.host.locale)}`;
+            secDiv.textContent = `${this.localizationManager.getDisplayName("Visual_SecondaryValue")}: ${formatCompact(dp.secondaryValue, this.host.locale, this.displayUnitsValue)}`;
             this.tooltipEl.appendChild(secDiv);
         }
         if (s.showTooltipMeasure.value && hasData && dp.tooltipValue != null && dp.tooltipValue !== 0) {
             const tooltipMeasureDiv = document.createElement("div");
             tooltipMeasureDiv.className = "bm-tt-meta";
-            tooltipMeasureDiv.textContent = `${this.localizationManager.getDisplayName("Visual_AdditionalMeasure")}: ${formatCompact(dp.tooltipValue, this.host.locale)}`;
+            tooltipMeasureDiv.textContent = `${this.localizationManager.getDisplayName("Visual_AdditionalMeasure")}: ${formatCompact(dp.tooltipValue, this.host.locale, this.displayUnitsValue)}`;
             this.tooltipEl.appendChild(tooltipMeasureDiv);
         }
         if (s.showPercentage.value && dp.percentage != null) {

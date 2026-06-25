@@ -61,5 +61,11 @@
   "Visual_SortName": "Nombre de la región",
   "Visual_NoData": "Sin datos",
   "Visual_SecondaryValue": "Valor secundario",
-  "Visual_AdditionalMeasure": "Medida adicional"
+  "Visual_AdditionalMeasure": "Medida adicional",
+  "Visual_DisplayUnits": "Unidades de visualización",
+  "Visual_Role_State": "Estado",
+  "Visual_Role_Category": "Categoría",
+  "Visual_Role_Measure": "Valor principal",
+  "Visual_Role_Secondary": "Valor secundario",
+  "Visual_Role_Tooltip": "Medida de información"
 }

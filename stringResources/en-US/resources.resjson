@@ -61,5 +61,11 @@
   "Visual_SortName": "Region name",
   "Visual_NoData": "No data",
   "Visual_SecondaryValue": "Secondary value",
-  "Visual_AdditionalMeasure": "Additional measure"
+  "Visual_AdditionalMeasure": "Additional measure",
+  "Visual_DisplayUnits": "Display units",
+  "Visual_Role_State": "State",
+  "Visual_Role_Category": "Category",
+  "Visual_Role_Measure": "Primary value",
+  "Visual_Role_Secondary": "Secondary value",
+  "Visual_Role_Tooltip": "Tooltip measure"
 }

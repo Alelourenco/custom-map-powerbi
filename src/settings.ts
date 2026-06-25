@@ -25,6 +25,7 @@ function loc(key: string, fallback: string): string {
 // ============================================================
 class MapSettingsCard extends FormattingSettingsCard {
     mapScope = new formattingSettings.AutoDropdown({ name: "mapScope", displayName: "Map region", value: "br" });
+    displayUnits = new formattingSettings.AutoDropdown({ name: "displayUnits", displayName: "Display units", value: "0" });
     borderColor = new formattingSettings.ColorPicker({ name: "borderColor", displayName: "Border color", value: { value: "#ffffff" } });
     borderWidth = new formattingSettings.NumUpDown({ name: "borderWidth", displayName: "Border width", value: 0.5, options: { minValue: { type: powerbi.visuals.ValidatorType.Min, value: 0 }, maxValue: { type: powerbi.visuals.ValidatorType.Max, value: 5 } } });
     hoverColor = new formattingSettings.ColorPicker({ name: "hoverColor", displayName: "Hover color", value: { value: "#ffd700" } });
@@ -47,7 +48,7 @@ class MapSettingsCard extends FormattingSettingsCard {
     name: string = "mapSettings";
     displayName: string = "Map";
     slices: Array<FormattingSettingsSlice> = [
-        this.mapScope, this.borderColor, this.borderWidth,
+        this.mapScope, this.displayUnits, this.borderColor, this.borderWidth,
         this.hoverColor, this.showMissingStates, this.noDataOpacity, this.mapPadding,
         this.showLabels, this.labelMode, this.labelFont, this.labelColor, this.labelStroke
     ];
@@ -55,6 +56,7 @@ class MapSettingsCard extends FormattingSettingsCard {
     applyLocalization(): void {
         this.displayName = loc("Visual_Map", "Map");
         this.mapScope.displayName = loc("Visual_MapScope", "Map region");
+        this.displayUnits.displayName = loc("Visual_DisplayUnits", "Display units");
         this.borderColor.displayName = loc("Visual_BorderColor", "Border color");
         this.borderWidth.displayName = loc("Visual_BorderWidth", "Border width");
         this.hoverColor.displayName = loc("Visual_HoverColor", "Hover color");

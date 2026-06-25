@@ -1,34 +1,39 @@
 {
   "dataRoles": [
     {
-      "displayName": "Estado",
+      "displayName": "State",
+      "displayNameKey": "Visual_Role_State",
       "name": "state",
       "kind": "Grouping",
-      "description": "UF ou nome do estado"
+      "description": "State code or name"
     },
     {
-      "displayName": "Categoria",
+      "displayName": "Category",
+      "displayNameKey": "Visual_Role_Category",
       "name": "category",
       "kind": "Grouping",
-      "description": "Categoria opcional para tooltip e agregação"
+      "description": "Optional category for tooltip and aggregation"
     },
     {
-      "displayName": "Valor principal",
+      "displayName": "Primary value",
+      "displayNameKey": "Visual_Role_Measure",
       "name": "measure",
       "kind": "Measure",
-      "description": "Métrica usada para cor e ranking"
+      "description": "Metric for color and ranking"
     },
     {
-      "displayName": "Valor secundário",
+      "displayName": "Secondary value",
+      "displayNameKey": "Visual_Role_Secondary",
       "name": "secondaryMeasure",
       "kind": "Measure",
-      "description": "Métrica opcional para tooltip e tabela"
+      "description": "Optional metric for tooltip and table"
     },
     {
-      "displayName": "Medida de tooltip",
+      "displayName": "Tooltip measure",
+      "displayNameKey": "Visual_Role_Tooltip",
       "name": "tooltipMeasure",
       "kind": "Measure",
-      "description": "Métrica opcional adicional para tooltip"
+      "description": "Optional additional metric for tooltip"
     }
   ],
   "dataViewMappings": [
@@ -98,6 +103,16 @@
         },
         "borderColor": {
           "type": { "fill": { "solid": { "color": true } } }
+        },
+        "displayUnits": {
+          "type": { "enumeration": [
+            { "value": "0", "displayName": "Auto" },
+            { "value": "1", "displayName": "None" },
+            { "value": "1000", "displayName": "Thousands" },
+            { "value": "1000000", "displayName": "Millions" },
+            { "value": "1000000000", "displayName": "Billions" },
+            { "value": "1000000000000", "displayName": "Trillions" }
+          ]}
         },
         "borderWidth": {
           "type": { "numeric": true }
@@ -255,8 +270,8 @@
         },
         "position": {
           "type": { "enumeration": [
-            { "value": "left", "displayName": "Esquerda" },
-            { "value": "right", "displayName": "Direita" }
+            { "value": "left", "displayName": "Left" },
+            { "value": "right", "displayName": "Right" }
           ]}
         },
         "topN": {
@@ -300,9 +315,9 @@
         },
         "sortBy": {
           "type": { "enumeration": [
-            { "value": "primary", "displayName": "Valor principal" },
-            { "value": "secondary", "displayName": "Valor secundário" },
-            { "value": "name", "displayName": "Nome do estado" }
+            { "value": "primary", "displayName": "Primary value" },
+            { "value": "secondary", "displayName": "Secondary value" },
+            { "value": "name", "displayName": "Region name" }
           ]}
         }
       }
