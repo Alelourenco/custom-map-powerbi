@@ -63,6 +63,39 @@
   "objects": {
     "mapSettings": {
       "properties": {
+        "mapScope": {
+          "type": { "enumeration": [
+            { "value": "br", "displayName": "Brasil" },
+            { "value": "ar", "displayName": "Argentina" },
+            { "value": "bo", "displayName": "Bolivia" },
+            { "value": "bz", "displayName": "Belize" },
+            { "value": "bs", "displayName": "Bahamas" },
+            { "value": "ca", "displayName": "Canada" },
+            { "value": "cl", "displayName": "Chile" },
+            { "value": "co", "displayName": "Colombia" },
+            { "value": "cr", "displayName": "Costa Rica" },
+            { "value": "cu", "displayName": "Cuba" },
+            { "value": "do", "displayName": "Dominican Republic" },
+            { "value": "ec", "displayName": "Ecuador" },
+            { "value": "gt", "displayName": "Guatemala" },
+            { "value": "gy", "displayName": "Guyana" },
+            { "value": "hn", "displayName": "Honduras" },
+            { "value": "ht", "displayName": "Haiti" },
+            { "value": "jm", "displayName": "Jamaica" },
+            { "value": "mx", "displayName": "Mexico" },
+            { "value": "ni", "displayName": "Nicaragua" },
+            { "value": "pa", "displayName": "Panama" },
+            { "value": "pe", "displayName": "Peru" },
+            { "value": "pr", "displayName": "Puerto Rico" },
+            { "value": "py", "displayName": "Paraguay" },
+            { "value": "sr", "displayName": "Suriname" },
+            { "value": "sv", "displayName": "El Salvador" },
+            { "value": "tt", "displayName": "Trinidad and Tobago" },
+            { "value": "us", "displayName": "United States" },
+            { "value": "uy", "displayName": "Uruguay" },
+            { "value": "ve", "displayName": "Venezuela" }
+          ]}
+        },
         "borderColor": {
           "type": { "fill": { "solid": { "color": true } } }
         },
@@ -83,12 +116,12 @@
         },
         "labelMode": {
           "type": { "enumeration": [
-            { "value": "uf", "displayName": "UF" },
-            { "value": "name", "displayName": "Nome do estado" },
-            { "value": "value", "displayName": "Valor" },
-            { "value": "uf_value", "displayName": "UF + Valor" },
-            { "value": "name_value", "displayName": "Nome + Valor" },
-            { "value": "none", "displayName": "Ocultar" }
+            { "value": "uf", "displayName": "Code" },
+            { "value": "name", "displayName": "Name" },
+            { "value": "value", "displayName": "Value" },
+            { "value": "uf_value", "displayName": "Code + Value" },
+            { "value": "name_value", "displayName": "Name + Value" },
+            { "value": "none", "displayName": "Hide" }
           ]}
         },
         "showLabels": {

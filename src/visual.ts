@@ -2,7 +2,6 @@
 
 import powerbi from "powerbi-visuals-api";
 import * as d3 from "d3";
-import brazilGeoData from "@highcharts/map-collection/countries/br/br-all.geo.json";
 import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
 import "./../style/visual.less";
 
@@ -17,6 +16,7 @@ import ISelectionId = powerbi.visuals.ISelectionId;
 
 import { VisualFormattingSettingsModel } from "./settings";
 import { applyGradientColors, buildLegendGradientCSS, getGradientDomain, GradientConfig, StateDataPoint } from "./colorEngine";
+import { GeoFeature, GeoCollection, MapScope, Locale, resolveLocale, getGeoForScope, getFeatureCode, getFeatureName, buildAliasMap } from "./geoData";
 
 /** Blend two hex colors at ratio t (0→color1, 1→color2). */
 function interpolateHex(c1: string, c2: string, t: number): string {
@@ -30,12 +30,12 @@ function lightenHex(hex: string, ratio: number): string {
     return interpolateHex(hex, "#ffffff", ratio);
 }
 
-type BrazilFeature = {
-    properties: Record<string, string | number | null>;
-    geometry: unknown;
+/** Localized UI strings */
+const L10N: Record<string, Record<Locale, string>> = {
+    noData: { pt: "Sem dados", en: "No data", es: "Sin datos" },
+    secondary: { pt: "Valor secundário", en: "Secondary value", es: "Valor secundario" },
+    additional: { pt: "Medida adicional", en: "Additional measure", es: "Medida adicional" },
 };
-
-const BRAZIL_FEATURES: BrazilFeature[] = (brazilGeoData as { features: BrazilFeature[] }).features;
 
 export class Visual implements IVisual {
     private events: IVisualEventService;
@@ -59,11 +59,18 @@ export class Visual implements IVisual {
     private zoomGroup: d3.Selection<SVGGElement, unknown, null, undefined>;
     private zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown>;
 
-    private featureByUf: Map<string, BrazilFeature>;
+    private featureByUf: Map<string, GeoFeature>;
     private aliasesToUf: Map<string, string>;
     private resizeObserver: ResizeObserver;
     private lastColoredData: StateDataPoint[] = [];
     private lastGradientConfig: GradientConfig | null = null;
+
+    // Dynamic geo state
+    private currentScope: MapScope = "br";
+    private currentGeoJson: GeoCollection;
+    private currentFeatures: GeoFeature[] = [];
+    private isCountryLevel: boolean = false;
+    private locale: Locale = "pt";
 
     constructor(options: VisualConstructorOptions) {
         this.events = options.host.eventService;
@@ -78,8 +85,15 @@ export class Visual implements IVisual {
         this.formattingSettingsService = new FormattingSettingsService();
         this.target = options.element;
         this.target.style.overflow = "hidden";
-        this.featureByUf = new Map<string, BrazilFeature>();
+        this.featureByUf = new Map<string, GeoFeature>();
         this.aliasesToUf = new Map<string, string>();
+        this.locale = resolveLocale(this.host.locale);
+
+        // Initialize with default scope (Brazil)
+        const geo = getGeoForScope("br");
+        this.currentGeoJson = geo.geoJson;
+        this.currentFeatures = geo.features;
+        this.isCountryLevel = geo.isCountryLevel;
         this.buildFeatureLookup();
 
         // Root container
@@ -165,6 +179,22 @@ export class Visual implements IVisual {
             this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(
                 VisualFormattingSettingsModel, dataView
             );
+
+            // Update locale from Power BI
+            this.locale = resolveLocale(this.host.locale);
+
+            // Check if map scope changed — reload geo data if so
+            const newScope = String(this.formattingSettings.mapSettingsCard.mapScope.value) as MapScope;
+            if (newScope !== this.currentScope) {
+                this.currentScope = newScope;
+                const geo = getGeoForScope(newScope);
+                this.currentGeoJson = geo.geoJson;
+                this.currentFeatures = geo.features;
+                this.isCountryLevel = geo.isCountryLevel;
+                this.buildFeatureLookup();
+                // Reset zoom on scope change
+                this.svg.call(this.zoomBehavior.transform, d3.zoomIdentity);
+            }
 
             // Extract data
             const dataPoints = this.extractData(dataView);
@@ -271,7 +301,7 @@ export class Visual implements IVisual {
             // Create selectionId for the first row of each state
             const existing = aggregated.get(stateCode) ?? {
                 stateCode,
-                stateName: String(feature?.properties.name ?? stateCode),
+                stateName: feature ? getFeatureName(feature, this.isCountryLevel, this.locale) : stateCode,
                 value: 0,
                 secondaryValue: 0,
                 tooltipValue: 0,
@@ -324,9 +354,10 @@ export class Visual implements IVisual {
         void this.mapWrapperEl.offsetHeight;
         const width = Math.max(100, this.mapWrapperEl.offsetWidth);
         const height = Math.max(100, this.mapWrapperEl.offsetHeight);
+
         const projection = d3.geoIdentity()
             .reflectY(true)
-            .fitExtent([[padding, padding], [Math.max(padding + 1, width - padding), Math.max(padding + 1, height - padding)]], brazilGeoData as never);
+            .fitExtent([[padding, padding], [Math.max(padding + 1, width - padding), Math.max(padding + 1, height - padding)]], this.currentGeoJson as unknown as d3.GeoPermissibleObjects);
         const pathGenerator = d3.geoPath(projection as never);
 
         this.svg
@@ -362,8 +393,8 @@ export class Visual implements IVisual {
         this.zoomGroup.selectAll(".bm-highlight-overlay").remove();
 
         const statesSelection = this.svg.select<SVGGElement>(".bm-states")
-            .selectAll<SVGPathElement, BrazilFeature>("path")
-            .data(BRAZIL_FEATURES, feature => this.getFeatureUf(feature) ?? "")
+            .selectAll<SVGPathElement, GeoFeature>("path")
+            .data(this.currentFeatures, feature => this.getFeatureUf(feature) ?? "")
             .join(
                 enter => enter.append("path").attr("class", "bm-state-path"),
                 update => update,
@@ -403,7 +434,7 @@ export class Visual implements IVisual {
             })
             .attr("stroke", mapS.borderColor.value.value)
             .attr("stroke-width", mapS.borderWidth.value)
-            .on("mouseenter", (event: MouseEvent, feature: BrazilFeature) => {
+            .on("mouseenter", (event: MouseEvent, feature: GeoFeature) => {
                 const target = event.target as SVGPathElement;
                 const code = this.getFeatureUf(feature);
                 const dp = code ? dataMap.get(code) : undefined;
@@ -419,7 +450,7 @@ export class Visual implements IVisual {
                 if (tooltipS.show.value && code) {
                     this.showTooltip(dp ?? {
                         stateCode: code,
-                        stateName: String(feature.properties.name ?? code),
+                        stateName: getFeatureName(feature, this.isCountryLevel, this.locale) || code,
                         value: 0,
                         percentage: 0,
                     }, event, !!dp);
@@ -430,7 +461,7 @@ export class Visual implements IVisual {
                     this.moveTooltip(event);
                 }
             })
-            .on("mouseleave", (event: MouseEvent, feature: BrazilFeature) => {
+            .on("mouseleave", (event: MouseEvent, feature: GeoFeature) => {
                 const target = event.target as SVGPathElement;
                 const code = this.getFeatureUf(feature);
                 const dp = code ? dataMap.get(code) : undefined;
@@ -454,7 +485,7 @@ export class Visual implements IVisual {
                 }
                 this.hideTooltip();
             })
-            .on("click", (_event: MouseEvent, feature: BrazilFeature) => {
+            .on("click", (_event: MouseEvent, feature: GeoFeature) => {
                 const code = this.getFeatureUf(feature);
                 const dp = code ? dataMap.get(code) : undefined;
                 if (dp?.selectionId) {
@@ -477,7 +508,7 @@ export class Visual implements IVisual {
         if (mapS.showLabels.value && labelMode !== "none") {
             const lf = mapS.labelFont;
             const useStroke = mapS.labelStroke.value;
-            BRAZIL_FEATURES.forEach(feature => {
+            this.currentFeatures.forEach(feature => {
                 const code = this.getFeatureUf(feature);
                 if (!code) {
                     return;
@@ -493,10 +524,11 @@ export class Visual implements IVisual {
 
                 // Build label text based on mode
                 let labelText: string;
-                const val = dataPoint ? dataPoint.value.toLocaleString("pt-BR") : "";
+                const val = dataPoint ? dataPoint.value.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US") : "";
+                const featureName = getFeatureName(feature, this.isCountryLevel, this.locale);
                 switch (labelMode) {
                     case "name":
-                        labelText = String(feature.properties.name ?? code);
+                        labelText = featureName || code;
                         break;
                     case "value":
                         labelText = val || code;
@@ -505,7 +537,7 @@ export class Visual implements IVisual {
                         labelText = val ? `${code}\n${val}` : code;
                         break;
                     case "name_value":
-                        labelText = val ? `${String(feature.properties.name ?? code)}\n${val}` : String(feature.properties.name ?? code);
+                        labelText = val ? `${featureName || code}\n${val}` : (featureName || code);
                         break;
                     default: // "uf"
                         labelText = code;
@@ -630,7 +662,7 @@ export class Visual implements IVisual {
                 if (s.showValue.value) {
                     const valSpan = document.createElement("span");
                     valSpan.className = "bm-dt-value";
-                    valSpan.textContent = displayValue.toLocaleString("pt-BR");
+                    valSpan.textContent = displayValue.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
                     values.appendChild(valSpan);
                 }
                 if (s.showPercentage.value) {
@@ -645,7 +677,7 @@ export class Visual implements IVisual {
             if (s.showSecondaryValue.value && item.secondaryValue != null && item.secondaryValue !== 0) {
                 const secondary = document.createElement("div");
                 secondary.className = "bm-dt-secondary";
-                secondary.textContent = `Sec.: ${item.secondaryValue.toLocaleString("pt-BR")}`;
+                secondary.textContent = `Sec.: ${item.secondaryValue.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US")}`;
                 row.appendChild(secondary);
             }
 
@@ -715,7 +747,7 @@ export class Visual implements IVisual {
             // Horizontal layout: minLabel - bar - maxLabel
             const minLabel = document.createElement("span");
             minLabel.className = "bm-legend-tick";
-            minLabel.textContent = domain.min.toLocaleString("pt-BR");
+            minLabel.textContent = domain.min.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
             this.legendEl.appendChild(minLabel);
 
             const bar = document.createElement("div");
@@ -725,13 +757,13 @@ export class Visual implements IVisual {
 
             const maxLabel = document.createElement("span");
             maxLabel.className = "bm-legend-tick";
-            maxLabel.textContent = domain.max.toLocaleString("pt-BR");
+            maxLabel.textContent = domain.max.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
             this.legendEl.appendChild(maxLabel);
         } else {
             // Vertical layout: maxLabel - bar - minLabel (top to bottom)
             const maxLabel = document.createElement("span");
             maxLabel.className = "bm-legend-tick";
-            maxLabel.textContent = domain.max.toLocaleString("pt-BR");
+            maxLabel.textContent = domain.max.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
             this.legendEl.appendChild(maxLabel);
 
             const bar = document.createElement("div");
@@ -741,7 +773,7 @@ export class Visual implements IVisual {
 
             const minLabel = document.createElement("span");
             minLabel.className = "bm-legend-tick";
-            minLabel.textContent = domain.min.toLocaleString("pt-BR");
+            minLabel.textContent = domain.min.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US");
             this.legendEl.appendChild(minLabel);
         }
 
@@ -788,19 +820,19 @@ export class Visual implements IVisual {
             const valDiv = document.createElement("div");
             valDiv.className = "bm-tt-value";
             const displayVal = dp.highlightValue != null ? dp.highlightValue : dp.value;
-            valDiv.textContent = hasData ? displayVal.toLocaleString("pt-BR") : "Sem dados";
+            valDiv.textContent = hasData ? displayVal.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US") : L10N.noData[this.locale];
             this.tooltipEl.appendChild(valDiv);
         }
         if (s.showSecondaryValue.value && hasData && dp.secondaryValue != null && dp.secondaryValue !== 0) {
             const secDiv = document.createElement("div");
             secDiv.className = "bm-tt-meta";
-            secDiv.textContent = `Valor secundário: ${dp.secondaryValue.toLocaleString("pt-BR")}`;
+            secDiv.textContent = `${L10N.secondary[this.locale]}: ${dp.secondaryValue.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US")}`;
             this.tooltipEl.appendChild(secDiv);
         }
         if (s.showTooltipMeasure.value && hasData && dp.tooltipValue != null && dp.tooltipValue !== 0) {
             const tooltipMeasureDiv = document.createElement("div");
             tooltipMeasureDiv.className = "bm-tt-meta";
-            tooltipMeasureDiv.textContent = `Medida adicional: ${dp.tooltipValue.toLocaleString("pt-BR")}`;
+            tooltipMeasureDiv.textContent = `${L10N.additional[this.locale]}: ${dp.tooltipValue.toLocaleString(this.locale === "pt" ? "pt-BR" : this.locale === "es" ? "es-ES" : "en-US")}`;
             this.tooltipEl.appendChild(tooltipMeasureDiv);
         }
         if (s.showPercentage.value && dp.percentage != null) {
@@ -845,15 +877,18 @@ export class Visual implements IVisual {
     }
 
     private buildFeatureLookup(): void {
-        BRAZIL_FEATURES.forEach(feature => {
-            const uf = this.getFeatureUf(feature);
-            if (!uf) {
-                return;
+        this.featureByUf.clear();
+        this.aliasesToUf.clear();
+
+        // Build alias map from geoData module
+        this.aliasesToUf = buildAliasMap(this.currentFeatures, this.isCountryLevel, this.locale);
+
+        // Build feature lookup by canonical code
+        this.currentFeatures.forEach(feature => {
+            const code = getFeatureCode(feature, this.isCountryLevel);
+            if (code) {
+                this.featureByUf.set(code, feature);
             }
-            this.featureByUf.set(uf, feature);
-            this.registerAlias(uf, uf);
-            this.registerAlias(String(feature.properties.name ?? uf), uf);
-            this.registerAlias(String(feature.properties["postal-code"] ?? uf), uf);
         });
     }
 
@@ -889,9 +924,9 @@ export class Visual implements IVisual {
         return colors.some(c => c !== "") ? colors : [];
     }
 
-    private getFeatureUf(feature: BrazilFeature): string | null {
-        const value = feature.properties["hc-a2"] ?? feature.properties["postal-code"];
-        return value ? String(value).toUpperCase() : null;
+    private getFeatureUf(feature: GeoFeature): string | null {
+        const code = getFeatureCode(feature, this.isCountryLevel);
+        return code || null;
     }
 
     private registerAlias(value: string, uf: string): void {
