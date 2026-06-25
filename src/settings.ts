@@ -11,6 +11,12 @@ import FormattingSettingsModel = formattingSettings.Model;
 // Map Settings Card
 // ============================================================
 class MapSettingsCard extends FormattingSettingsCard {
+    mapScope = new formattingSettings.AutoDropdown({
+        name: "mapScope",
+        displayName: "Região do mapa",
+        value: "br"
+    });
+
     borderColor = new formattingSettings.ColorPicker({
         name: "borderColor",
         displayName: "Cor da borda",
@@ -110,6 +116,7 @@ class MapSettingsCard extends FormattingSettingsCard {
     name: string = "mapSettings";
     displayName: string = "Mapa";
     slices: Array<FormattingSettingsSlice> = [
+        this.mapScope,
         this.borderColor, this.borderWidth,
         this.hoverColor, this.showMissingStates, this.noDataOpacity, this.mapPadding,
         this.showLabels, this.labelMode, this.labelFont, this.labelColor, this.labelStroke

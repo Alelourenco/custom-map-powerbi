@@ -1,6 +1,6 @@
 {
-		"version": "1.0.0.0",
-		"author": {"name":"Developer","email":"dev@example.com"},
+		"version": "2.0.0.0",
+		"author": {"name":"Alelourenco","email":"alelourenco@outlook.com"},
 		"resources": [
 			{
 				"resourceId": "rId0",
@@ -8,7 +8,7 @@
 				"file": "resources/brazilMapVisual5B5DD37DD18C45B1B3C7DD73C184549D.pbiviz.json"
 			}
 		],
-		"visual": {"name":"brazilMapVisual","displayName":"Mapa do Brasil - Custom BI","guid":"brazilMapVisual5B5DD37DD18C45B1B3C7DD73C184549D","visualClassName":"Visual","version":"1.0.0.0","description":"Mapa coroplético do Brasil com formatação condicional via degradê, responsivo e personalizável.","supportUrl":"https://github.com","gitHubUrl":"https://github.com"},
+		"visual": {"name":"brazilMapVisual","displayName":"Americas Map - Custom BI","guid":"brazilMapVisual5B5DD37DD18C45B1B3C7DD73C184549D","visualClassName":"Visual","version":"2.0.0.0","description":"Interactive choropleth map of the Americas for Power BI. Supports all countries in South, Central and North America with conditional formatting, cross-filtering and full localization.","supportUrl":"https://github.com/Alelourenco/custom-map-powerbi","gitHubUrl":"https://github.com/Alelourenco/custom-map-powerbi"},
 		"metadata": {
 			"pbivizjson": {
 				"resourceId": "rId0"
